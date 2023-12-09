@@ -1,0 +1,107 @@
+---
+title: "Final_project"
+author: "Edgar Rosales,"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+house_data, which originated from house_sales.csv and imported through the read.csv function, provides a dataset that consists of 21,613 ojbects and 21 different variables. These variables consist of numerics (int & num) and character strings.  
+```{r}
+house_data <- read.csv("house_sales.csv", na.strings = "")
+str(house_data)
+```
+
+```{r}
+colSums(is.na(house_data))
+```
+```{r}
+house_data_clean <- na.omit(house_data)
+
+colSums(is.na(house_data_clean))
+```
+```{r}
+# Convert 'date' to Date format
+house_data_clean$date <- as.Date(house_data_clean$date, format="%Y%m%dT%H%M%S")
+str(house_data_clean)
+```
+
+Here we use the aggregate function to group taverage house value per zipcode
+
+```{r}
+# Example: Aggregating 'price' by 'zipcode' using mean
+zip_prices <- aggregate(house_data$price, by = list(zipcode = house_data$zipcode), FUN = mean)
+colnames(zip_prices) <- c("zipcode", "mean_price")
+
+head(zip_prices)
+
+
+library(ggplot2)
+
+# Bar chart of average house price by zipcode using ggplot2 with vertical x-axis labels
+ggplot(filtered_average_price, aes(x = factor(zipcode), y = average_price)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Average House Price by Zipcode", x = "Zipcode", y = "Average Price") +
+  theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust=2))
+
+
+```
+
+```{r}
+# Drop variables 
+house_data_clean <- house_data_clean[, !(names(house_data_clean) %in% c("date", "grade", "zipcode","lat","long"))]
+
+str(house_data_clean)
+```
+
+
+```{r}
+# Boxplot for every numeric variable
+par(mfrow = c(1, 2))  # Set the layout for multiple plots, adjust based on the number of variables
+for (i in 1:ncol(house_data_clean)) {
+  if (is.numeric(house_data_clean[, i])) {
+    boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
+  }
+}
+house_data_clean
+```
+```{r}
+
+# Specify the constant multiplier for outlier detection (e.g., 1.5)
+k <- 1.5
+
+# Loop through each numeric variable
+for (col in names(house_data_clean)) {
+  if (is.numeric(house_data_clean[[col]])) {
+    # Calculate Q1, Q3, and IQR for the current variable
+    Q1 <- quantile(house_data_clean[[col]], 0.25)
+    Q3 <- quantile(house_data_clean[[col]], 0.75)
+    IQR <- Q3 - Q1
+    
+    # Identify outliers for the current variable
+    outliers <- house_data_clean[[col]] < Q1 - k * IQR | house_data_clean[[col]] > Q3 + k * IQR
+    
+    # Remove outliers from the dataset
+    house_data_clean <- house_data_clean[!outliers, ]
+  }
+}
+
+
+house_data_clean
+```
+```{r}
+par(mfrow = c(1, 2))  # Set the layout for multiple plots, adjust based on the number of variables
+for (i in 1:ncol(house_data_clean)) {
+  if (is.numeric(house_data_clean[, i])) {
+    boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
+  }
+}
+```
+getting rid of data that is not important 
+```{r}
+house_data_clean <- house_data_clean[, !(names(house_data_clean) %in% c("waterfront", "view", "yr_renovated"))]
+
+```
+
+
+
+

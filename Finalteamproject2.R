@@ -1,3 +1,4 @@
+
 house_data <- read.csv("house_sales.csv")
 
 houdim(house_data)
