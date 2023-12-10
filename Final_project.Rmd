@@ -5,12 +5,25 @@ date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
+```{r}
+library(caret)
+```
+
+
+Part 1:data importing and pre-processing
+
+
+
 house_data, which originated from house_sales.csv and imported through the read.csv function, provides a dataset that consists of 21,613 ojbects and 21 different variables. These variables consist of numerics (int & num) and character strings.  
 ```{r}
 house_data <- read.csv("house_sales.csv", na.strings = "")
 str(house_data)
 ```
 
+
+
+
+taking care of missing data
 ```{r}
 colSums(is.na(house_data))
 ```
@@ -19,53 +32,51 @@ house_data_clean <- na.omit(house_data)
 
 colSums(is.na(house_data_clean))
 ```
+
+
+
+checking for any duplicated rows
+
+```{r}
+#Checking for duplicated rows
+duplicates <- house_data_clean[duplicated(house_data_clean), ]
+
+# Display the duplicated rows
+print(duplicates)
+
+
+```
+
+
+
 ```{r}
 # Convert 'date' to Date format
 house_data_clean$date <- as.Date(house_data_clean$date, format="%Y%m%dT%H%M%S")
 str(house_data_clean)
 ```
 
-Here we use the aggregate function to group taverage house value per zipcode
-
-```{r}
-# Example: Aggregating 'price' by 'zipcode' using mean
-zip_prices <- aggregate(house_data$price, by = list(zipcode = house_data$zipcode), FUN = mean)
-colnames(zip_prices) <- c("zipcode", "mean_price")
-
-head(zip_prices)
 
 
-library(ggplot2)
 
-# Bar chart of average house price by zipcode using ggplot2 with vertical x-axis labels
-ggplot(filtered_average_price, aes(x = factor(zipcode), y = average_price)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Average House Price by Zipcode", x = "Zipcode", y = "Average Price") +
-  theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust=2))
+handling outliers
 
 
-```
-
-```{r}
-# Drop variables 
-house_data_clean <- house_data_clean[, !(names(house_data_clean) %in% c("date", "grade", "zipcode","lat","long"))]
-
-str(house_data_clean)
-```
 
 
+
+Here we are showing an example of what our data looks like before we handle outliers 
 ```{r}
 # Boxplot for every numeric variable
-par(mfrow = c(1, 2))  # Set the layout for multiple plots, adjust based on the number of variables
+par(mfrow = c(1, 4))  # Set the layout for multiple plots, adjust based on the number of variables
 for (i in 1:ncol(house_data_clean)) {
   if (is.numeric(house_data_clean[, i])) {
     boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
   }
 }
-house_data_clean
 ```
-```{r}
 
+here we are showing the changes in boxblots after adjusting for outliers 
+```{r}
 # Specify the constant multiplier for outlier detection (e.g., 1.5)
 k <- 1.5
 
@@ -85,23 +96,256 @@ for (col in names(house_data_clean)) {
   }
 }
 
-
-house_data_clean
 ```
+
+
 ```{r}
-par(mfrow = c(1, 2))  # Set the layout for multiple plots, adjust based on the number of variables
+par(mfrow = c(1, 4))  # Set the layout for multiple plots, adjust based on the number of variables
 for (i in 1:ncol(house_data_clean)) {
   if (is.numeric(house_data_clean[, i])) {
     boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
   }
 }
 ```
-getting rid of data that is not important 
+
+
+Here we use the aggregate function to group taverage house value per zipcode
+
 ```{r}
-house_data_clean <- house_data_clean[, !(names(house_data_clean) %in% c("waterfront", "view", "yr_renovated"))]
+# Example: Aggregating 'price' by 'zipcode' using mean
+zip_prices <- aggregate(house_data$price, by = list(zipcode = house_data$zipcode), FUN = mean)
+colnames(zip_prices) <- c("zipcode", "mean_price")
+
+head(zip_prices)
+
+
+library(ggplot2)
+
+# Use the correct object name 'zip_prices' instead of 'filtered_average_price'
+ggplot(zip_prices, aes(x = factor(zipcode), y = mean_price)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Average House Price by Zipcode", x = "Zipcode", y = "Average Price") +
+  theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust=2))
+
+
 
 ```
 
+
+
+```{r}
+house_data_clean$decade_built <- 10 * (house_data_clean$yr_built %/% 10)  # Create a decade category
+avg_price_by_decade <- aggregate(house_data_clean$price, by = list(decade_built = house_data_clean$decade_built), FUN = mean)
+colnames(avg_price_by_decade) <- c("decade_built", "avg_price")
+
+
+barplot(avg_price_by_decade$avg_price, names.arg = avg_price_by_decade$decade_built, col = "skyblue", main = "Average House Prices by Decade of Year Built", xlab = "Decade of Year Built", ylab = "Average Price")
+
+
+```
+
+
+
+```{r}
+# Aggregate average house prices by bedrooms and bathrooms
+avg_price_bed_bath <- aggregate(house_data_clean$price, by = list(bedrooms = house_data_clean$bedrooms, bathrooms = house_data_clean$bathrooms), FUN = mean)
+colnames(avg_price_bed_bath) <- c("bedrooms", "bathrooms", "avg_price")
+
+# Create a new column with formatted labels
+avg_price_bed_bath$label <- paste(avg_price_bed_bath$bedrooms, "BR, ", avg_price_bed_bath$bathrooms, "BA")
+
+# Get unique values of 'bedrooms'
+unique_bedrooms <- unique(avg_price_bed_bath$bedrooms)
+
+# Create separate bar charts for each unique number of bedrooms
+for (bedroom_value in unique_bedrooms) {
+  # Subset the data for the current number of bedrooms
+  subset_data <- subset(avg_price_bed_bath, bedrooms == bedroom_value)
+
+  # Create a new column with formatted labels
+  subset_data$label <- paste(subset_data$bedrooms, "BR, ", subset_data$bathrooms, "BA")
+
+  # Bar chart
+  barplot(subset_data$avg_price, beside = TRUE, names.arg = subset_data$label, col = "lightgreen", 
+          main = paste("Average House Prices by Bedrooms and Bathrooms (", bedroom_value, " Bedrooms)"), 
+          xlab = "Bedrooms and Bathrooms", ylab = "Average Price (USD)")
+}
+
+```
+
+
+
+
+feature construction 
+
+
+```{r}
+house_data_clean$age <- 2023 - house_data_clean$yr_built
+
+```
+
+
+```{r}
+house_data_clean$bed_bath_ratio <- house_data_clean$bedrooms / house_data_clean$bathrooms
+
+```
+
+
+```{r}
+house_data_clean$total_sqft <- house_data_clean$sqft_living + house_data_clean$sqft_lot
+
+```
+
+
+```{r}
+house_data_clean$month_sold <- as.numeric(substr(house_data_clean$date, 5, 6))
+
+```
+
+
+```{r}
+house_data_clean$price_per_sqft <- house_data_clean$price / house_data_clean$sqft_living
+
+```
+
+
+Normalizing
+```{r}
+# Function to perform Min-Max scaling
+min_max_scaling <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+# Columns to normalize (you can choose specific columns)
+columns_to_normalize <- c("age", "bed_bath_ratio", "total_sqft", "month_sold", "price_per_sqft")
+
+# Apply Min-Max scaling to selected columns
+house_data_clean[columns_to_normalize] <- lapply(house_data_clean[columns_to_normalize], min_max_scaling)
+
+# Display summary statistics of normalized features
+summary(house_data_clean[columns_to_normalize])
+
+```
+
+
+
+reducing redundant data 
+
+
+```{r}
+# Calculate correlation matrix
+correlation_matrix <- cor(house_data_clean[columns_to_normalize])
+
+# Create a heatmap of the correlation matrix
+library(ggplot2)
+library(reshape2)
+
+# Melt the correlation matrix for visualization
+correlation_melted <- melt(correlation_matrix)
+
+# Create the heatmap
+ggplot(data = correlation_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  theme_minimal() +
+  labs(title = "Correlation Heatmap")
+
+
+```
+
+
+
+
+
+
+Part2
+
+Identify categorical, ordinal and numerical veriables
+
+```{r}
+# Display the structure of the dataframe
+str(house_data_clean)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Assuming 'house_data' is your data frame
+categorical_vars <- c("waterfront", "view", "zipcode")
+
+# Checking the unique values in each categorical variable
+sapply(house_data_clean[categorical_vars], function(x) unique(x))
+
+categorical_vars
+
+```
+
+Identifying N
+
+```{r}
+
+# Assuming 'house_data' is your data frame
+ordinal_vars <- c("condition", "grade")
+
+# Checking the unique values in each ordinal variable
+sapply(house_data_clean[ordinal_vars], function(x) unique(x))
+
+```
+
+```{r}
+# Assuming 'house_data_clean' is your data frame
+numerical_vars <- sapply(house_data_clean, is.numeric)
+numerical_vars 
+
+```
+
+
+
+
+Measures of centraility and distribution
+
+
+```{r}
+# Assuming 'house_data_clean' is your data frame
+numerical_vars <- sapply(house_data_clean, is.numeric)
+numerical_vars <- names(numerical_vars[numerical_vars])
+
+# Display summary statistics for numerical variables
+summary_stats <- summary(house_data_clean[numerical_vars])
+
+# Print summary statistics
+print(summary_stats)
+
+# Create histograms for numerical variables
+par(mfrow = c(2, 2))  # Set up a 2x2 grid for subplots
+
+for (var in numerical_vars) {
+  hist(house_data_clean[[var]], main = paste("Histogram of", var), xlab = var, col = "lightblue", border = "black")
+}
+
+
+```
 
 
 
