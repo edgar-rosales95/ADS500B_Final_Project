@@ -365,7 +365,7 @@ nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
 ```{r}
 library(caret)
 
-# Assuming 'house_data_clean' is your data frame
+
 nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
 
 # Extract the names of near-zero variance columns
@@ -380,7 +380,6 @@ filtered_data <- house_data_clean[, !names(house_data_clean) %in% nearZeroVarNam
 
 
 ```{r}
-# Assuming 'filtered_data' is your dataset without near-zero variance variables 
 
 # Select numeric variables for correlation analysis
 numeric_variables <- filtered_data[, sapply(filtered_data, is.numeric)]
