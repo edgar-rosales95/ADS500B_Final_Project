@@ -41,7 +41,7 @@ checking for any duplicated rows
 #Checking for duplicated rows
 duplicates <- house_data_clean[duplicated(house_data_clean), ]
 
-# Display the duplicated rows
+#Display the duplicated rows
 print(duplicates)
 
 
@@ -77,7 +77,7 @@ for (i in 1:ncol(house_data_clean)) {
 
 here we are showing the changes in boxblots after adjusting for outliers 
 ```{r}
-# Specify the constant multiplier for outlier detection (e.g., 1.5)
+#Specify the constant multiplier for outlier detection
 k <- 1.5
 
 # Loop through each numeric variable
@@ -88,10 +88,10 @@ for (col in names(house_data_clean)) {
     Q3 <- quantile(house_data_clean[[col]], 0.75)
     IQR <- Q3 - Q1
     
-    # Identify outliers for the current variable
+    #Identify outliers for the current variable
     outliers <- house_data_clean[[col]] < Q1 - k * IQR | house_data_clean[[col]] > Q3 + k * IQR
     
-    # Remove outliers from the dataset
+    #Remove outliers from the dataset
     house_data_clean <- house_data_clean[!outliers, ]
   }
 }
@@ -100,7 +100,7 @@ for (col in names(house_data_clean)) {
 
 
 ```{r}
-par(mfrow = c(1, 4))  # Set the layout for multiple plots, adjust based on the number of variables
+par(mfrow = c(1, 4)) 
 for (i in 1:ncol(house_data_clean)) {
   if (is.numeric(house_data_clean[, i])) {
     boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
@@ -112,7 +112,7 @@ for (i in 1:ncol(house_data_clean)) {
 Here we use the aggregate function to group taverage house value per zipcode
 
 ```{r}
-# Example: Aggregating 'price' by 'zipcode' using mean
+
 zip_prices <- aggregate(house_data$price, by = list(zipcode = house_data$zipcode), FUN = mean)
 colnames(zip_prices) <- c("zipcode", "mean_price")
 
@@ -121,7 +121,7 @@ head(zip_prices)
 
 library(ggplot2)
 
-# Use the correct object name 'zip_prices' instead of 'filtered_average_price'
+
 ggplot(zip_prices, aes(x = factor(zipcode), y = mean_price)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   labs(title = "Average House Price by Zipcode", x = "Zipcode", y = "Average Price") +
@@ -147,22 +147,22 @@ barplot(avg_price_by_decade$avg_price, names.arg = avg_price_by_decade$decade_bu
 
 
 ```{r}
-# Aggregate average house prices by bedrooms and bathrooms
+#Aggregate average house prices by bedrooms and bathrooms
 avg_price_bed_bath <- aggregate(house_data_clean$price, by = list(bedrooms = house_data_clean$bedrooms, bathrooms = house_data_clean$bathrooms), FUN = mean)
 colnames(avg_price_bed_bath) <- c("bedrooms", "bathrooms", "avg_price")
 
-# Create a new column with formatted labels
+#new column with formatted labels
 avg_price_bed_bath$label <- paste(avg_price_bed_bath$bedrooms, "BR, ", avg_price_bed_bath$bathrooms, "BA")
 
-# Get unique values of 'bedrooms'
+#Get unique values of 'bedrooms'
 unique_bedrooms <- unique(avg_price_bed_bath$bedrooms)
 
-# Create separate bar charts for each unique number of bedrooms
+#separate bar charts for each unique number of bedrooms
 for (bedroom_value in unique_bedrooms) {
-  # Subset the data for the current number of bedrooms
+  #Subset data for the current number of bedrooms
   subset_data <- subset(avg_price_bed_bath, bedrooms == bedroom_value)
 
-  # Create a new column with formatted labels
+  #new column with formatted labels
   subset_data$label <- paste(subset_data$bedrooms, "BR, ", subset_data$bathrooms, "BA")
 
   # Bar chart
@@ -211,25 +211,24 @@ house_data_clean$price_per_sqft <- house_data_clean$price / house_data_clean$sqf
 
 Normalizing
 ```{r}
-# Function to perform Min-Max scaling
+#Function to perform Min-Max scaling
 min_max_scaling <- function(x) {
   return((x - min(x)) / (max(x) - min(x)))
 }
 
-# Columns to normalize (you can choose specific columns)
+#Columns to normalize 
 columns_to_normalize <- c("age", "bed_bath_ratio", "total_sqft", "month_sold", "price_per_sqft")
 
-# Apply Min-Max scaling to selected columns
+#Min-Max scaling to selected columns
 house_data_clean[columns_to_normalize] <- lapply(house_data_clean[columns_to_normalize], min_max_scaling)
 
-# Display summary statistics of normalized features
+#summary statistics of normalized features
 summary(house_data_clean[columns_to_normalize])
 
 ```
 
 
 
-reducing redundant data 
 
 
 ```{r}
@@ -346,6 +345,88 @@ for (var in numerical_vars) {
 
 
 ```
+```{r}
+
+correlation_matrix <- cor(house_data_clean[, sapply(house_data_clean, is.numeric)])
+
+```
+
+
+
+```{r}
+library(caret)
+nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
+
+```
+
+
+
+
+```{r}
+library(caret)
+
+# Assuming 'house_data_clean' is your data frame
+nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
+
+# Extract the names of near-zero variance columns
+nearZeroVarNames <- names(house_data_clean)[nearZeroVarCols$nzv]
+
+# Exclude near-zero variance variables from the dataset
+filtered_data <- house_data_clean[, !names(house_data_clean) %in% nearZeroVarNames]
+
+
+
+```
+
+
+```{r}
+# Assuming 'filtered_data' is your dataset without near-zero variance variables 
+
+# Select numeric variables for correlation analysis
+numeric_variables <- filtered_data[, sapply(filtered_data, is.numeric)]
+
+# Compute the correlation matrix for numeric variables
+correlation_matrix_filtered <- cor(numeric_variables)
+
+# Visualize the correlation matrix using a heatmap
+library(corrplot)
+corrplot(correlation_matrix_filtered, method = "color")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
