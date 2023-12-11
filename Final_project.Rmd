@@ -12,8 +12,6 @@ library(caret)
 
 Part 1:data importing and pre-processing
 
-
-
 house_data, which originated from house_sales.csv and imported through the read.csv function, provides a dataset that consists of 21,613 ojbects and 21 different variables. These variables consist of numerics (int & num) and character strings.  
 ```{r}
 house_data <- read.csv("house_sales.csv", na.strings = "")
@@ -36,7 +34,6 @@ colSums(is.na(house_data_clean))
 
 
 checking for any duplicated rows
-
 ```{r}
 #Checking for duplicated rows
 duplicates <- house_data_clean[duplicated(house_data_clean), ]
@@ -48,9 +45,8 @@ print(duplicates)
 ```
 
 
-
 ```{r}
-# Convert 'date' to Date format
+#convert 'date' to Date format
 house_data_clean$date <- as.Date(house_data_clean$date, format="%Y%m%dT%H%M%S")
 str(house_data_clean)
 ```
@@ -61,13 +57,10 @@ str(house_data_clean)
 handling outliers
 
 
-
-
-
 Here we are showing an example of what our data looks like before we handle outliers 
 ```{r}
-# Boxplot for every numeric variable
-par(mfrow = c(1, 4))  # Set the layout for multiple plots, adjust based on the number of variables
+#boxplot for every numeric variable
+par(mfrow = c(1, 4)) 
 for (i in 1:ncol(house_data_clean)) {
   if (is.numeric(house_data_clean[, i])) {
     boxplot(house_data_clean[, i], main = names(house_data_clean)[i], col = "skyblue", border = "black")
@@ -77,10 +70,10 @@ for (i in 1:ncol(house_data_clean)) {
 
 here we are showing the changes in boxblots after adjusting for outliers 
 ```{r}
-#Specify the constant multiplier for outlier detection
+#specify the constant multiplier for outlier detection
 k <- 1.5
 
-# Loop through each numeric variable
+#loop through each numeric variable
 for (col in names(house_data_clean)) {
   if (is.numeric(house_data_clean[[col]])) {
     # Calculate Q1, Q3, and IQR for the current variable
@@ -88,7 +81,7 @@ for (col in names(house_data_clean)) {
     Q3 <- quantile(house_data_clean[[col]], 0.75)
     IQR <- Q3 - Q1
     
-    #Identify outliers for the current variable
+    #outliers for the current variable
     outliers <- house_data_clean[[col]] < Q1 - k * IQR | house_data_clean[[col]] > Q3 + k * IQR
     
     #Remove outliers from the dataset
@@ -108,9 +101,7 @@ for (i in 1:ncol(house_data_clean)) {
 }
 ```
 
-
 Here we use the aggregate function to group taverage house value per zipcode
-
 ```{r}
 
 zip_prices <- aggregate(house_data$price, by = list(zipcode = house_data$zipcode), FUN = mean)
@@ -118,16 +109,12 @@ colnames(zip_prices) <- c("zipcode", "mean_price")
 
 head(zip_prices)
 
-
 library(ggplot2)
-
 
 ggplot(zip_prices, aes(x = factor(zipcode), y = mean_price)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   labs(title = "Average House Price by Zipcode", x = "Zipcode", y = "Average Price") +
   theme(axis.text.x = element_text(angle = 90, vjust = .5, hjust=2))
-
-
 
 ```
 
@@ -138,70 +125,60 @@ house_data_clean$decade_built <- 10 * (house_data_clean$yr_built %/% 10)  # Crea
 avg_price_by_decade <- aggregate(house_data_clean$price, by = list(decade_built = house_data_clean$decade_built), FUN = mean)
 colnames(avg_price_by_decade) <- c("decade_built", "avg_price")
 
-
 barplot(avg_price_by_decade$avg_price, names.arg = avg_price_by_decade$decade_built, col = "skyblue", main = "Average House Prices by Decade of Year Built", xlab = "Decade of Year Built", ylab = "Average Price")
-
-
 ```
 
-
-
 ```{r}
-#Aggregate average house prices by bedrooms and bathrooms
+#aggregate average house prices by bedrooms and bathrooms
 avg_price_bed_bath <- aggregate(house_data_clean$price, by = list(bedrooms = house_data_clean$bedrooms, bathrooms = house_data_clean$bathrooms), FUN = mean)
 colnames(avg_price_bed_bath) <- c("bedrooms", "bathrooms", "avg_price")
 
-#new column with formatted labels
-avg_price_bed_bath$label <- paste(avg_price_bed_bath$bedrooms, "BR, ", avg_price_bed_bath$bathrooms, "BA")
+#new column with labels
+avg_price_bed_bath$label <- paste(avg_price_bed_bath$bedrooms, "BR, ", 
+                                  avg_price_bed_bath$bathrooms, "BA")
 
-#Get unique values of 'bedrooms'
+#unique values of 'bedrooms'
 unique_bedrooms <- unique(avg_price_bed_bath$bedrooms)
 
 #separate bar charts for each unique number of bedrooms
 for (bedroom_value in unique_bedrooms) {
-  #Subset data for the current number of bedrooms
+  #subset data for the current number of bedrooms
   subset_data <- subset(avg_price_bed_bath, bedrooms == bedroom_value)
 
-  #new column with formatted labels
-  subset_data$label <- paste(subset_data$bedrooms, "BR, ", subset_data$bathrooms, "BA")
+  #new column with labels
+  subset_data$label <- paste(subset_data$bedrooms, "BR, ", 
+                             subset_data$bathrooms, "BA")
 
-  # Bar chart
-  barplot(subset_data$avg_price, beside = TRUE, names.arg = subset_data$label, col = "lightgreen", 
-          main = paste("Average House Prices by Bedrooms and Bathrooms (", bedroom_value, " Bedrooms)"), 
+  #bar chart
+  barplot(subset_data$avg_price, beside = TRUE, names.arg = 
+            subset_data$label, col = "lightgreen", 
+          main = paste("Average House Prices by Bedrooms and Bathrooms
+                       (", bedroom_value, " Bedrooms)"), 
           xlab = "Bedrooms and Bathrooms", ylab = "Average Price (USD)")
 }
 
 ```
 
-
-
-
 feature construction 
-
-
 ```{r}
 house_data_clean$age <- 2023 - house_data_clean$yr_built
 
 ```
-
 
 ```{r}
 house_data_clean$bed_bath_ratio <- house_data_clean$bedrooms / house_data_clean$bathrooms
 
 ```
 
-
 ```{r}
 house_data_clean$total_sqft <- house_data_clean$sqft_living + house_data_clean$sqft_lot
 
 ```
 
-
 ```{r}
 house_data_clean$month_sold <- as.numeric(substr(house_data_clean$date, 5, 6))
 
 ```
-
 
 ```{r}
 house_data_clean$price_per_sqft <- house_data_clean$price / house_data_clean$sqft_living
@@ -211,12 +188,12 @@ house_data_clean$price_per_sqft <- house_data_clean$price / house_data_clean$sqf
 
 Normalizing
 ```{r}
-#Function to perform Min-Max scaling
+#function to perform Min-Max scaling
 min_max_scaling <- function(x) {
   return((x - min(x)) / (max(x) - min(x)))
 }
 
-#Columns to normalize 
+#columns to normalize 
 columns_to_normalize <- c("age", "bed_bath_ratio", "total_sqft", "month_sold", "price_per_sqft")
 
 #Min-Max scaling to selected columns
@@ -227,22 +204,18 @@ summary(house_data_clean[columns_to_normalize])
 
 ```
 
-
-
-
-
 ```{r}
-# Calculate correlation matrix
+#calculate correlation matrix
 correlation_matrix <- cor(house_data_clean[columns_to_normalize])
 
-# Create a heatmap of the correlation matrix
+#create a heatmap of the correlation matrix
 library(ggplot2)
 library(reshape2)
 
-# Melt the correlation matrix for visualization
+#melt the correlation matrix for visualization
 correlation_melted <- melt(correlation_matrix)
 
-# Create the heatmap
+#heatmap
 ggplot(data = correlation_melted, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   theme_minimal() +
@@ -251,46 +224,17 @@ ggplot(data = correlation_melted, aes(x = Var1, y = Var2, fill = value)) +
 
 ```
 
-
-
-
-
-
 Part2
 
 Identify categorical, ordinal and numerical veriables
 
 ```{r}
-# Display the structure of the dataframe
+#display the structure of the dataframe
 str(house_data_clean)
-
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```{r}
-# Assuming 'house_data' is your data frame
 categorical_vars <- c("waterfront", "view", "zipcode")
 
 # Checking the unique values in each categorical variable
@@ -303,17 +247,14 @@ categorical_vars
 Identifying N
 
 ```{r}
-
-# Assuming 'house_data' is your data frame
 ordinal_vars <- c("condition", "grade")
 
-# Checking the unique values in each ordinal variable
+#checking the unique values in each ordinal variable
 sapply(house_data_clean[ordinal_vars], function(x) unique(x))
 
 ```
 
 ```{r}
-# Assuming 'house_data_clean' is your data frame
 numerical_vars <- sapply(house_data_clean, is.numeric)
 numerical_vars 
 
@@ -326,103 +267,128 @@ Measures of centraility and distribution
 
 
 ```{r}
-# Assuming 'house_data_clean' is your data frame
 numerical_vars <- sapply(house_data_clean, is.numeric)
 numerical_vars <- names(numerical_vars[numerical_vars])
 
-# Display summary statistics for numerical variables
+#summary statistics for numerical variables
 summary_stats <- summary(house_data_clean[numerical_vars])
 
-# Print summary statistics
 print(summary_stats)
 
-# Create histograms for numerical variables
+#histograms for numerical variables
 par(mfrow = c(2, 2))  # Set up a 2x2 grid for subplots
 
 for (var in numerical_vars) {
-  hist(house_data_clean[[var]], main = paste("Histogram of", var), xlab = var, col = "lightblue", border = "black")
+  hist(house_data_clean[[var]], main = paste("Histogram of", var), 
+       xlab = var, col = "lightblue", border = "black")
 }
 
 
 ```
-```{r}
-
-correlation_matrix <- cor(house_data_clean[, sapply(house_data_clean, is.numeric)])
-
-```
-
-
-
-```{r}
-library(caret)
-nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
-
-```
-
 
 
 
 ```{r}
 library(caret)
 
-
 nearZeroVarCols <- nearZeroVar(house_data_clean, saveMetrics = TRUE)
 
-# Extract the names of near-zero variance columns
+#Extract the names of near-zero variance columns
 nearZeroVarNames <- names(house_data_clean)[nearZeroVarCols$nzv]
 
-# Exclude near-zero variance variables from the dataset
+#Exclude near-zero variance variables from the dataset
 filtered_data <- house_data_clean[, !names(house_data_clean) %in% nearZeroVarNames]
-
-
 
 ```
 
-
 ```{r}
 
-# Select numeric variables for correlation analysis
-numeric_variables <- filtered_data[, sapply(filtered_data, is.numeric)]
+correlation_matrix_filtered <- cor(filtered_data[, sapply
+                                                 (filtered_data,is.numeric)])
 
-# Compute the correlation matrix for numeric variables
-correlation_matrix_filtered <- cor(numeric_variables)
-
-# Visualize the correlation matrix using a heatmap
+#Visualize the correlation matrix using a heatmap
 library(corrplot)
 corrplot(correlation_matrix_filtered, method = "color")
 
+#correlations with the dependent variable 
+cor_with_dependent <- cor(filtered_data$price, filtered_data[, sapply
+                                                  (filtered_data, is.numeric)])
+
+# Print correlations with the dependent variable
+print(cor_with_dependent)
+
+```
+
+
+
+```{r}
+#Check for multicollinearity using VIF (Variance Inflation Factor)
+library(car)
+vif_model <- lm(price ~  floors + condition + grade + lat + long + 
+                  sqft_living15 + sqft_lot15 + decade_built + bed_bath_ratio 
+                + total_sqft + price_per_sqft, data = filtered_data)
+vif_values <- vif(vif_model)
+print(vif_values)
+
 ```
 
 
 
 
+```{r}
+#Correlation heatmap
+library(corrplot)
+correlation_matrix <- cor(filtered_data[, c("price", "bedrooms", "bathrooms", 
+                                            "sqft_living", "sqft_lot","floors")])
+corrplot(correlation_matrix, method = "color")
+
+```
 
 
 
+For our goal of predicting house prices, we'll use a supervised learning 
+approach. In this setup:
+
+Dependent Variable (Predicting):
+price
+Independent Variables (Factors Influencing Price):
+bedrooms, bathrooms, sqft_living, sqft_lot, floors, condition, grade, lat, 
+long, sqft_living15, sqft_lot15, decade_built, age, bed_bath_ratio, 
+total_sqft, price_per_sqft
+These variables are used to train a model, and the model then predicts house 
+prices based on new input data. This process is the essence of 
+supervised learning.
 
 
 
+```{r}
+# Split the data into training and testing sets
+set.seed(123)
+sample_index <- sample(1:nrow(filtered_data), 0.7 * nrow(filtered_data))
+train_data <- filtered_data[sample_index, ]
+test_data <- filtered_data[-sample_index, ]
 
+# Build the model on the training set
+final_model <- lm(price ~ bedrooms + bathrooms + floors + condition + grade
+                  + lat + long + sqft_living15 + sqft_lot15 + decade_built
+                  + bed_bath_ratio + total_sqft + price_per_sqft, 
+                  data = train_data)
 
+# Make predictions on the test set
+predictions <- predict(final_model, newdata = test_data)
 
+#Evaluate model performance
+#Mean Squared Error (MSE), Mean Absolute Error (MAE), R-squared
+mse <- mean((test_data$price - predictions)^2)
+mae <- mean(abs(test_data$price - predictions))
+rsquared <- 1 - (sum((test_data$price - predictions)^2) / 
+                   sum((test_data$price - mean(test_data$price))^2))
 
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("R-squared:", rsquared, "\n")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
 
 
 
